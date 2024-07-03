@@ -1,0 +1,69 @@
+cabal-version:   3.0
+name:            scheduled-pipelines
+version:         0.0.0
+
+-- synopsis:
+-- description:
+license:         BSD-2-Clause
+license-file:    LICENSE
+author:          Stevan A
+maintainer:      stevana@users.noreply.github.com
+
+-- copyright:
+category:        Concurrency
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+-- extra-source-files:
+
+common warnings
+  ghc-options: -Wall
+
+library
+  import:           warnings
+  exposed-modules:
+    Config
+    LibMain
+    Queue
+    Scheduler
+    Scheduler.Queue
+    Workers
+    Workers.Queue
+    Stage
+
+  -- other-modules:
+  -- other-extensions:
+  build-depends:
+    , base        ^>=4.20.0.0
+    , containers
+    , stm
+
+  hs-source-dirs:   src
+  default-language: Haskell2010
+
+executable exe
+  import:           warnings
+  main-is:          Main.hs
+
+  -- other-modules:
+  -- other-extensions:
+  build-depends:
+    , base                 ^>=4.20.0.0
+    , scheduled-pipelines
+
+  hs-source-dirs:   app
+  default-language: Haskell2010
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+
+test-suite test
+  import:           warnings
+  default-language: Haskell2010
+
+  -- other-modules:
+  -- other-extensions:
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   test
+  main-is:          Main.hs
+  build-depends:
+    , base                 ^>=4.20.0.0
+    , scheduled-pipelines
