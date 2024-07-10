@@ -26,25 +26,28 @@ startWorkers cpus schedulerQueue stageQueues = do
     workerLoop workerId workerQueue = do
       msg <- readQueue workerQueue
       case msg of
+        Shutdown -> 
+          putStrLn  $ "Shutting down worker " ++ show (getWorkerId workerId)
         DoTask task -> do
           putStrLn  $ "worker " ++ show (getWorkerId workerId) ++ ": got " ++ show task
-          let stage = stageQueues Map.! taskStageId task
-          case stage of
-            Stage _stageId stageInQueue stageOutQueue stageFunction -> do
-              go stageInQueue stageOutQueue stageFunction (taskSize task)
+          case stageQueues Map.! taskStageId task of
+            SomeStage stage -> do
+              processBatch stage (taskSize task)
               workerLoop workerId workerQueue
       where
-        go _q _q' _f 0 = writeQueue schedulerQueue (WorkerReady workerId)
-        go  q  q'  f n = do
+        processBatch _stage 0 = 
+          writeQueue schedulerQueue (WorkerReady workerId)
+        processBatch stage@(Stage stageId q q' f) n = do
           mx <- readQueue q
           case mx of
             EndOfStream -> do
-              writeQueue q  EndOfStream -- For other workers to read.
+              putStrLn  $ "worker " ++ show (getWorkerId workerId) ++ ": done with stage " ++ show stageId
+              unGetQueue q  EndOfStream -- For other workers to read.
               writeQueue q' EndOfStream
-              writeQueue schedulerQueue (WorkerDone workerId)
-              putStrLn ("Shutting down worker " ++ show (getWorkerId workerId))
+              writeQueue schedulerQueue (StageDone stageId)
+              writeQueue schedulerQueue (WorkerReady workerId)
             Message x   -> do
               y <- f x
               writeQueue q' (Message y)
-              go q q' f (n - 1)
+              processBatch stage (n - 1)
 

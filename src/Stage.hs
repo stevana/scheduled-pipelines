@@ -2,7 +2,6 @@
 
 module Stage where
 
-import Control.Concurrent
 import Control.Monad
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -12,11 +11,14 @@ import Queue
 
 ------------------------------------------------------------------------
 
-type StageId = Int
+type StageId = String
 
-type Stages = Map StageId Stage
+type Stages = Map StageId SomeStage
 
-data Stage = forall a b. (Typeable a, Typeable b) => Stage
+data SomeStage = forall a b. (Typeable a, Typeable b) => 
+  SomeStage (Stage a b)
+
+data Stage a b = Stage
   { _stageId       :: StageId
   , _stageInQueue  :: StageQueue a
   , _stageOutQueue :: StageQueue b
@@ -29,46 +31,39 @@ data Envelop a = Message a | EndOfStream
 
 ------------------------------------------------------------------------
 
-newStage :: (Typeable a, Typeable b)
-         => StageId -> StageQueue a -> (a -> IO b) -> IO (Stage, StageQueue b)
-newStage stageId queueIn stageFunction = do
-  queueOut <- newQueue
-  return (Stage stageId queueIn queueOut stageFunction, queueOut)
+makeStages :: [SomeStage] -> Stages
+makeStages stages 
+  = Map.fromList 
+  $ map (\(i, stage) -> 
+      case stage of
+        SomeStage (Stage stageId _ _ _) -> (show i ++ "-" ++ stageId, stage)) 
+      (zip [(0 :: Int)..] stages)
 
-lengthStageInQueue :: Stage -> IO Int
+newStage_ :: StageId -> Queue (Envelop a) -> (a -> IO b) -> IO (Stage a b)
+newStage_ stageId inQueue stageFunction = do
+  outQueue <- newQueue
+  return (Stage stageId inQueue outQueue stageFunction)
+
+newStage :: StageId -> Stage a b -> (b -> IO c) -> IO (Stage b c)
+newStage stageId stage stageFunction = 
+  newStage_ stageId (_stageOutQueue stage) stageFunction
+
+lengthStageInQueue :: Stage a b -> IO Int
 lengthStageInQueue (Stage _ inq _ _ ) = lengthQueue inq
 
 lengthStages :: Stages -> IO (Map StageId Int)
 lengthStages stages = do
-  lens <- forM (Map.toList stages) $ \(stageId, stage) -> do
+  lens <- forM (Map.toList stages) $ \(stageId, SomeStage stage) -> do
     len <- lengthStageInQueue stage
     return (stageId, len)
   return (Map.fromList lens)
 
-newSource :: [a] -> IO (StageQueue a)
+newSource :: [a] -> IO (Stage a a)
 newSource xs0 = do
   q <- newQueue
-  _pid <- forkIO (go q xs0)
-  return q
-  where
-    go q []       = do
-      putStrLn "Shutting down source"
-      writeQueue q EndOfStream
-    go q (x : xs) = do
-      writeQueue q (Message x)
-      threadDelay 100000
-      go q xs
+  mapM_ (writeQueue q . Message) xs0
+  writeQueue q EndOfStream
+  newStage_ "Source" q return
 
-newSink :: StageQueue a -> (a -> IO ()) -> IO ()
-newSink q sink = do
-  _pid <- forkIO go
-  return ()
-  where
-    go = do
-      mx <- readQueue q
-      case mx of
-        EndOfStream -> putStrLn "Shutting down sink"
-        Message x   -> do
-          sink x
-          threadDelay 100000
-          go
+newSink :: Stage a b -> (b -> IO ()) -> IO (Stage b ())
+newSink stage sink = newStage "Sink" stage sink

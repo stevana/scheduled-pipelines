@@ -24,12 +24,14 @@ library
   exposed-modules:
     Config
     LibMain
+    LibTest
     Queue
     Scheduler
     Scheduler.Queue
     Workers
     Workers.Queue
     Stage
+    Logger
 
   -- other-modules:
   -- other-extensions:
@@ -37,6 +39,7 @@ library
     , base        ^>=4.20.0.0
     , containers
     , stm
+    , text
 
   hs-source-dirs:   src
   default-language: Haskell2010
@@ -48,7 +51,7 @@ executable exe
   -- other-modules:
   -- other-extensions:
   build-depends:
-    , base                 ^>=4.20.0.0
+    , base                
     , scheduled-pipelines
 
   hs-source-dirs:   app
@@ -65,5 +68,7 @@ test-suite test
   hs-source-dirs:   test
   main-is:          Main.hs
   build-depends:
-    , base                 ^>=4.20.0.0
+    , base                 
     , scheduled-pipelines
+    , tasty
+    , tasty-hunit

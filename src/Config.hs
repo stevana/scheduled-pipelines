@@ -3,6 +3,8 @@ module Config where
 import Control.Exception (assert)
 import Data.List
 import Data.Ord
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Map (Map)
 import qualified Data.Map as Map
 
@@ -39,14 +41,15 @@ possibleConfigs cpus stages = map (Config . Map.fromList . zip stages) $ filter 
         go acc 0 (x : xs) = reverse acc ++ f x : xs
         go acc n (x : xs) = go (x : acc) (n - 1) xs
 
-changeStage :: Maybe StageId -> Config -> StageId
-changeStage Nothing    _cfg          = 0
-changeStage (Just old) (Config diff) 
+changeStage :: StageId -> Config -> StageId
+changeStage old (Config diff) 
   | diff Map.! old >= 0 = old
   | otherwise           = go 0 (Map.elems diff)
   where
+    stageIds = Map.keys diff
+
     go _new [] = error ("shouldChange: impossible, a diff always has the sum of 0, diff = " ++ show diff)
-    go  new (i : is) | i > 0     = new
+    go  new (i : is) | i > 0     = stageIds !! new
                      | otherwise = go (new + 1) is
 
 diffConfig :: Config -> Config -> Config
@@ -88,12 +91,18 @@ scores :: Map StageId Int -> Config -> Map StageId Double
 scores lens (Config cfg) = 
   joinMapsWith (\len -> score (QueueStats len [])) lens cfg
 
-allocateWorkers :: Int -> Map StageId Int -> Config
-allocateWorkers cpus lens = case result of
-  [] -> error "allocateWorkers: impossible"
-  (cfg, _score) : _ -> cfg
+allocateWorkers :: Int -> Map StageId Int -> Set StageId -> Maybe Config
+allocateWorkers cpus lens done = case result of
+  [] -> Nothing
+  (cfg, _score) : _ -> Just cfg
   where
     result = sortBy (comparing snd)
                [ (cfg, sum (Map.elems (scores lens cfg)))
                | cfg <- possibleConfigs cpus (Map.keys lens)
+               , not (allocatesDoneStages cfg done)
                ] 
+
+allocatesDoneStages :: Config -> Set StageId -> Bool
+allocatesDoneStages (Config cfg) done = 
+  any (\(stageId, numWorkers) -> stageId `Set.member` done && numWorkers > 0)
+      (Map.toList cfg)

@@ -14,7 +14,7 @@ type WorkerQueues = Map WorkerId WorkerQueue
 newtype WorkerId = WorkerId { getWorkerId :: Int }
   deriving (Show, Eq, Ord)
 
-data WorkerMessage = DoTask Task
+data WorkerMessage = DoTask Task | Shutdown
 
 data Task = Task
   { taskStageId :: StageId

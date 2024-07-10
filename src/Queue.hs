@@ -23,3 +23,6 @@ writeQueue (Queue q) x = atomically (writeTBQueue q x)
 
 lengthQueue :: Queue a -> IO Int
 lengthQueue (Queue q) = fromIntegral <$> atomically (lengthTBQueue q)
+
+unGetQueue :: Queue a -> a -> IO ()
+unGetQueue (Queue q) x = atomically (unGetTBQueue q x)

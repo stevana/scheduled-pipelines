@@ -1,6 +1,7 @@
-module LibMain where
+module LibTest where
 
 import Control.Concurrent
+import Control.Monad
 
 import Queue
 import Stage
@@ -9,18 +10,20 @@ import Workers
 
 ------------------------------------------------------------------------
 
-main :: IO ()
-main = do
+unit_twoStagePipeline :: IO Bool
+unit_twoStagePipeline = do
 
   let inputSize = 3
   let batchSize = 1
   let cpus = 2 -- <- getNumCapabilities
 
   putStrLn "Deploying pipeline"
+  let input = replicate inputSize ()
   s1 <- newSource (replicate inputSize ())
   s2 <- newStage "A" s1 (const (threadDelay 10000))
   s3 <- newStage "B" s2 (const (threadDelay 20000))
-  s4 <- newSink s3 print
+  outQueue <- newQueue
+  s4 <- newSink s3 (writeQueue outQueue)
 
   schedulerQueue <- newQueue 
 
@@ -32,3 +35,6 @@ main = do
 
   putStrLn "Starting scheduler"
   startScheduler cpus batchSize schedulerQueue stages workerQueues
+
+  output <- replicateM inputSize (readQueue outQueue)
+  return (output == input)
