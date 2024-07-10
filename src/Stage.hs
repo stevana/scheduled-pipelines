@@ -36,7 +36,13 @@ makeStages stages
   = Map.fromList 
   $ map (\(i, stage) -> 
       case stage of
-        SomeStage (Stage stageId _ _ _) -> (show i ++ "-" ++ stageId, stage)) 
+        SomeStage stage_ -> 
+          let 
+            -- Prefix stage names with their index, so that the `Stages`
+            -- `Map`` preserves the insertion order.
+            stageId' = show i ++ "-" ++ stageId 
+          in 
+            (stageId', stage_ { stageId = stageId' })) 
       (zip [(0 :: Int)..] stages)
 
 newStage_ :: StageId -> Queue (Envelop a) -> (a -> IO b) -> IO (Stage a b)
