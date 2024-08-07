@@ -1,0 +1,15 @@
+@startuml system-context
+!include C4_Context.puml
+
+System(scheduler, "Scheduler")
+System(workers, "Workers")
+System(pipeline, "Pipeline")
+
+Rel(scheduler, workers, "monitors queue lengths", "Shared memory")
+Rel(scheduler, workers, "send instructions about which pipeline stage to process (and how many items)", "Message queue")
+Rel(workers, scheduler, "says when done with a batch, or when a stage is done (end of stream)", "Message queue")
+Rel(workers, pipeline, "processes batch of items at a stage", "CPU/core")
+
+
+@enduml
+

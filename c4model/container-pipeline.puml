@@ -1,0 +1,19 @@
+@startuml container-pipeline
+!include C4_Container.puml
+
+System_Boundary(pipeline, "Pipeline") {
+  Container(source, "Source", "File, network socket, or user provided list of items")
+  Container(stage1, "Stage 1")
+  Container(stage2, "Stage 2")
+  Container(stage3, "Stage 3")
+  Container(sink,   "Sink", "File, socket, stdout, ...")
+}
+System(workers, "Workers")
+
+Rel(source, stage1, "connected by queue")
+Rel(stage1, stage2, "connected by queue")
+Rel(stage2, stage3, "connected by queue")
+Rel(stage3, sink,   "connected by queue")
+Rel(workers, pipeline, "processes batch of items at source, some stage, or sink")
+@enduml
+
