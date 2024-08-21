@@ -2,25 +2,27 @@ module Config where
 
 import Control.Exception (assert)
 import Data.List
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Ord
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Map (Map)
-import qualified Data.Map as Map
 
 import Stage (StageId)
 
 ------------------------------------------------------------------------
 
+-- start snippet Config
 newtype Config = Config (Map StageId NumOfWorkers)
   deriving Show
 
 type NumOfWorkers = Int
+-- end snippet
 
 ------------------------------------------------------------------------
 
 initConfig :: [StageId] -> Config
-initConfig stageIds = 
+initConfig stageIds =
   Config (Map.fromList (zip stageIds (replicate (length stageIds) 0)))
 
 -- https://stackoverflow.com/questions/22939260/every-way-to-organize-n-objects-in-m-list-slots
@@ -42,7 +44,7 @@ possibleConfigs cpus stages = map (Config . Map.fromList . zip stages) $ filter 
         go acc n (x : xs) = go (x : acc) (n - 1) xs
 
 changeStage :: StageId -> Config -> StageId
-changeStage old (Config diff) 
+changeStage old (Config diff)
   | diff Map.! old >= 0 = old
   | otherwise           = go 0 (Map.elems diff)
   where
@@ -53,12 +55,12 @@ changeStage old (Config diff)
                      | otherwise = go (new + 1) is
 
 diffConfig :: Config -> Config -> Config
-diffConfig (Config old) (Config new) = 
+diffConfig (Config old) (Config new) =
   Config (joinMapsWith diffInt old new)
 
 -- https://www.haskellforall.com/2014/12/a-very-general-api-for-relational-joins.html
 joinMapsWith :: Ord k => (a -> b -> c) -> Map k a -> Map k b -> Map k c
-joinMapsWith f m1 m2 = assert (Map.keys m1 == Map.keys m2) $ 
+joinMapsWith f m1 m2 = assert (Map.keys m1 == Map.keys m2) $
   Map.fromList
     [ (k, f x (m2 Map.! k))
     | (k, x) <- Map.toList m1
@@ -88,7 +90,7 @@ score qs workers =
   (fromIntegral workers + 1)
 
 scores :: Map StageId Int -> Config -> Map StageId Double
-scores lens (Config cfg) = 
+scores lens (Config cfg) =
   joinMapsWith (\len -> score (QueueStats len [])) lens cfg
 
 allocateWorkers :: Int -> Map StageId Int -> Set StageId -> Maybe Config
@@ -100,9 +102,9 @@ allocateWorkers cpus lens done = case result of
                [ (cfg, sum (Map.elems (scores lens cfg)))
                | cfg <- possibleConfigs cpus (Map.keys lens)
                , not (allocatesDoneStages cfg done)
-               ] 
+               ]
 
 allocatesDoneStages :: Config -> Set StageId -> Bool
-allocatesDoneStages (Config cfg) done = 
+allocatesDoneStages (Config cfg) done =
   any (\(stageId, numWorkers) -> stageId `Set.member` done && numWorkers > 0)
       (Map.toList cfg)
