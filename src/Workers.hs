@@ -1,13 +1,16 @@
 module Workers where
 
-import Control.Monad
 import Control.Concurrent
+import Control.Monad
+import Data.Fixed
+import Data.IORef
 import qualified Data.Map as Map
+import Data.Time.Clock
 
-import Scheduler.Queue
-import Workers.Queue
 import Queue
+import Scheduler.Queue
 import Stage
+import Workers.Queue
 
 ------------------------------------------------------------------------
 
@@ -26,7 +29,7 @@ startWorkers cpus schedulerQueue stageQueues = do
     workerLoop workerId workerQueue = do
       msg <- readQueue workerQueue
       case msg of
-        Shutdown -> 
+        Shutdown ->
           putStrLn  $ "Shutting down worker " ++ show (getWorkerId workerId)
         DoTask task -> do
           putStrLn  $ "worker " ++ show (getWorkerId workerId) ++ ": got " ++ show task
@@ -35,9 +38,9 @@ startWorkers cpus schedulerQueue stageQueues = do
               processBatch stage (taskSize task)
               workerLoop workerId workerQueue
       where
-        processBatch _stage 0 = 
+        processBatch _stage 0 =
           writeQueue schedulerQueue (WorkerReady workerId)
-        processBatch stage@(Stage stageId q q' f) n = do
+        processBatch stage@(Stage stageId q q' f serviceTimes) n = do
           mx <- readQueue q
           case mx of
             EndOfStream -> do
@@ -47,7 +50,14 @@ startWorkers cpus schedulerQueue stageQueues = do
               writeQueue schedulerQueue (StageDone stageId)
               writeQueue schedulerQueue (WorkerReady workerId)
             Message x   -> do
+              t0 <- getCurrentTime
               y <- f x
+              t1 <- getCurrentTime
+              let serviceTimeDiff = diffUTCTime t1 t0
+                  serviceTime     = case nominalDiffTimeToSeconds serviceTimeDiff of
+                                      MkFixed ns -> fromInteger ns
+              modifyIORef' serviceTimes (serviceTime :)
+              print serviceTime
               writeQueue q' (Message y)
               processBatch stage (n - 1)
 

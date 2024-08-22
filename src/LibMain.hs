@@ -3,8 +3,8 @@ module LibMain where
 import Control.Concurrent
 
 import Queue
-import Stage
 import Scheduler
+import Stage
 import Workers
 
 ------------------------------------------------------------------------
@@ -22,9 +22,9 @@ main = do
   s3 <- newStage "B" s2 (const (threadDelay 20000))
   s4 <- newSink s3 print
 
-  schedulerQueue <- newQueue 
+  schedulerQueue <- newQueue
 
-  let stages = makeStages 
+  let stages = makeStages
                 [SomeStage s1, SomeStage s2, SomeStage s3, SomeStage s4]
 
   putStrLn "Starting workers"

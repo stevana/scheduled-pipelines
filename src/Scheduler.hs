@@ -8,9 +8,9 @@ import qualified Data.Set as Set
 
 import Config
 import Queue
+import Scheduler.Queue
 import Stage
 import Workers.Queue
-import Scheduler.Queue
 
 ------------------------------------------------------------------------
 
@@ -23,8 +23,8 @@ data SchedulerState = SchedulerState
 ------------------------------------------------------------------------
 
 initSchedulerState :: [StageId] -> SchedulerState
-initSchedulerState stageIds = SchedulerState 
-  { runningTasks = Map.empty 
+initSchedulerState stageIds = SchedulerState
+  { runningTasks = Map.empty
   , lastConfig   = initConfig stageIds
   , doneStages   = Set.empty
   }
@@ -41,21 +41,21 @@ startScheduler cpus size schedulerQueue stages workerQueues = do
       msg <- readQueue schedulerQueue
       case msg of
         StageDone stageId -> do
-          let doneStages' = Set.insert stageId (doneStages state) 
+          let doneStages' = Set.insert stageId (doneStages state)
           print doneStages'
           if Set.fromList stageIds == doneStages'
-          then putStrLn "Shutting down scheduler in 10s..." >> threadDelay 10000000 
+          then putStrLn "Shutting down scheduler in 1ms..." >> threadDelay 1000
           else go state { doneStages = doneStages' }
         WorkerReady workerId -> do
           -- XXX: collect stats about service time
           let mOldTask = runningTasks state Map.!? workerId
-          queueStats <- lengthStages stages
-          putStr "Queue lengths: "
+          queueStats <- queueStatsStages stages
+          putStr "Queue stats: "
           print queueStats
           let mNewConfig = allocateWorkers cpus queueStats (doneStages state)
           putStrLn $ "scheduler, allocateWorkers: " ++ show mNewConfig
           case mNewConfig of
-            Nothing -> do 
+            Nothing -> do
               writeQueue (workerQueues Map.! workerId) Shutdown
               go state
             Just newConfig -> do
@@ -67,19 +67,19 @@ startScheduler cpus size schedulerQueue stages workerQueues = do
                                 Nothing         -> stageIds !! 0
                                 Just oldStageId -> changeStage oldStageId diff
               case mOldTask of
-                Nothing -> putStrLn $ "worker " ++ show (getWorkerId workerId) ++ 
+                Nothing -> putStrLn $ "worker " ++ show (getWorkerId workerId) ++
                   ": started working on stage " ++ show newStageId
-                Just oldTask | newStageId == taskStageId oldTask -> 
-                  putStrLn $ "worker " ++ show (getWorkerId workerId) ++ 
-                  ": kept working on stage " ++ show (taskStageId oldTask) 
-                             | otherwise -> 
-                  putStrLn $ "worker " ++ show (getWorkerId workerId) ++ ": changed from stage " ++ 
-                    show (taskStageId oldTask) ++ 
+                Just oldTask | newStageId == taskStageId oldTask ->
+                  putStrLn $ "worker " ++ show (getWorkerId workerId) ++
+                  ": kept working on stage " ++ show (taskStageId oldTask)
+                             | otherwise ->
+                  putStrLn $ "worker " ++ show (getWorkerId workerId) ++ ": changed from stage " ++
+                    show (taskStageId oldTask) ++
                     " to stage " ++ show newStageId
               let newTask = Task newStageId size
-              let state' = state 
-                             { runningTasks = 
-                                 Map.insert workerId newTask (runningTasks state) 
+              let state' = state
+                             { runningTasks =
+                                 Map.insert workerId newTask (runningTasks state)
                              , lastConfig = newConfig
                              }
               putStrLn $ "scheduler, sending " ++ show newTask ++ " to worker " ++ show (getWorkerId workerId)

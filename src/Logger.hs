@@ -6,11 +6,11 @@ import Control.Monad
 import Data.List (intersperse)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import qualified Data.Text.Lazy as LazyText
 import qualified Data.Text.IO as Text
+import qualified Data.Text.Lazy as LazyText
 import qualified Data.Text.Lazy.Builder as Builder
-import System.IO
 import System.Exit
+import System.IO
 
 ------------------------------------------------------------------------
 
@@ -20,9 +20,9 @@ data Logger = Logger
 data LogLevel = Trace | Debug | Info | Warn | Error | Fatal
   deriving (Eq, Ord, Show, Enum, Bounded)
 
-data LogSegment 
-  = Text Text 
-  | String String 
+data LogSegment
+  = Text Text
+  | String String
   | Int Int
 
 ------------------------------------------------------------------------
@@ -31,11 +31,11 @@ ppLogLevel :: LogLevel -> Text
 ppLogLevel lvl = "[" <> Text.toLower (Text.pack (show lvl)) <> "]"
 
 ppLogSegments :: [LogSegment] -> Text
-ppLogSegments 
-  = LazyText.toStrict 
-  . Builder.toLazyText 
+ppLogSegments
+  = LazyText.toStrict
+  . Builder.toLazyText
   . mconcat
-  . intersperse (Builder.singleton ' ') 
+  . intersperse (Builder.singleton ' ')
   . map aux
   where
     aux (Text t)   = Builder.fromText t
@@ -47,7 +47,7 @@ defaultFormatter lvl segs = ppLogLevel lvl <> " " <> ppLogSegments segs
 
 ------------------------------------------------------------------------
 
-data LoggerOptions = LoggerOptions 
+data LoggerOptions = LoggerOptions
   { _loggerKind      :: LoggerKind
   , _loggerFilter    :: LoggerFilter
   , _loggerTimestamp :: Maybe (IO Text) -- XXX: add later
@@ -76,14 +76,14 @@ newLogger opts = case _loggerKind opts of
     noLogger = Logger (\_ _ -> return ())
 
     stdoutLogger :: Logger
-    stdoutLogger = Logger 
+    stdoutLogger = Logger
       { _log = \lvl segs -> levelFilter lvl $
-                              Text.putStrLn (defaultFormatter lvl segs) 
+                              Text.putStrLn (defaultFormatter lvl segs)
       }
 
     fileLogger :: FilePath -> IO Logger
-    fileLogger fp = withFile fp AppendMode $ \h -> 
-      return Logger 
+    fileLogger fp = withFile fp AppendMode $ \h ->
+      return Logger
         { _log = \lvl segs -> levelFilter lvl $
                                 Text.hPutStrLn h (defaultFormatter lvl segs)
         }
@@ -102,8 +102,8 @@ info l = _log l Info
 warn :: Logger -> [LogSegment] -> IO ()
 warn l = _log l Warn
 
-error :: Logger -> [LogSegment] -> IO ()
-error l = _log l Error
+error' :: Logger -> [LogSegment] -> IO ()
+error' l = _log l Error
 -- XXX: call error?
 
 fatal :: Logger -> [LogSegment] -> IO ()

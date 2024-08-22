@@ -7,8 +7,9 @@ import qualified Data.Map as Map
 import Data.Ord
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Word
 
-import Stage (StageId)
+import Stage
 
 ------------------------------------------------------------------------
 
@@ -21,11 +22,29 @@ type NumOfWorkers = Int
 
 ------------------------------------------------------------------------
 
+-- start snippet initConfig
 initConfig :: [StageId] -> Config
 initConfig stageIds =
   Config (Map.fromList (zip stageIds (replicate (length stageIds) 0)))
+-- end snippet
+
+-- | Find configuration (allocation of workers to stages) which minimises the
+-- score (i.e. estimated total service time).
+-- start snippet allocateWorkers
+allocateWorkers :: Int -> Map StageId QueueStats -> Set StageId -> Maybe Config
+allocateWorkers cpus qstats done = case result of
+  []                -> Nothing
+  (cfg, _score) : _ -> Just cfg
+  where
+    result = sortBy (comparing snd)
+               [ (cfg, sum (Map.elems (scores qstats cfg)))
+               | cfg <- possibleConfigs cpus (Map.keys qstats)
+               , not (allocatesDoneStages cfg done)
+               ]
+-- end snippet
 
 -- https://stackoverflow.com/questions/22939260/every-way-to-organize-n-objects-in-m-list-slots
+-- start snippet possibleConfigs
 possibleConfigs :: Int -> [StageId] -> [Config]
 possibleConfigs cpus stages = map (Config . Map.fromList . zip stages) $ filter ((== cpus) . sum)
   [ foldl' (\ih i -> update i succ ih) (replicate (length stages) 0) slot
@@ -36,12 +55,44 @@ possibleConfigs cpus stages = map (Config . Map.fromList . zip stages) $ filter 
     combinations :: [a] -> Int -> [[a]]
     combinations xs n = filter ((== n) . length) (subsequences xs)
 
+    -- update i f xs = xs[i] := f (xs[i])
     update :: Int -> (a -> a) -> [a] -> [a]
     update i f = go [] i
       where
         go acc _ []       = reverse acc
         go acc 0 (x : xs) = reverse acc ++ f x : xs
         go acc n (x : xs) = go (x : acc) (n - 1) xs
+-- end snippet
+
+-- https://en.wikipedia.org/wiki/D%27Hondt_method
+-- https://en.wikipedia.org/wiki/Sainte-Lagu%C3%AB_method
+-- start snippet scores
+scores :: Map StageId QueueStats -> Config -> Map StageId Double
+scores qss (Config cfg) = joinMapsWith score qss cfg
+
+score :: QueueStats -> Int -> Double
+score qs0 workers =
+  (fromIntegral (queueLength qs0) * fromIntegral (avgServiceTimePicos qs0))
+  /
+  (fromIntegral workers + 1)
+  where
+    avgServiceTimePicos :: QueueStats -> Word64
+    avgServiceTimePicos qs
+      | len == 0  = 1 -- XXX: What's the right value here?
+      | otherwise = sum (serviceTimesPicos qs) `div` len
+      where
+        len :: Word64
+        len = genericLength (serviceTimesPicos qs)
+-- end snippet
+
+-- start snippet allocatesDoneStages
+allocatesDoneStages :: Config -> Set StageId -> Bool
+allocatesDoneStages (Config cfg) done =
+  any (\(stageId, numWorkers) -> stageId `Set.member` done && numWorkers > 0)
+      (Map.toList cfg)
+-- end snippet
+
+------------------------------------------------------------------------
 
 changeStage :: StageId -> Config -> StageId
 changeStage old (Config diff)
@@ -69,42 +120,3 @@ joinMapsWith f m1 m2 = assert (Map.keys m1 == Map.keys m2) $
 diffInt :: Int -> Int -> Int
 diffInt old new = new - old
 
-data QueueStats = QueueStats
-  { queueLength       :: Int
-  , serviceTimesPicos :: [Integer]
-  }
-
-avgServiceTime :: QueueStats -> Integer
-avgServiceTime qs
-  | len == 0  = 1
-  | otherwise = sum (serviceTimesPicos qs) `div` len
-  where
-    len = genericLength (serviceTimesPicos qs)
-
--- https://en.wikipedia.org/wiki/D%27Hondt_method
--- https://en.wikipedia.org/wiki/Sainte-Lagu%C3%AB_method
-score :: QueueStats -> Int -> Double
-score qs workers =
-  (fromIntegral (queueLength qs) * fromIntegral (avgServiceTime qs))
-  /
-  (fromIntegral workers + 1)
-
-scores :: Map StageId Int -> Config -> Map StageId Double
-scores lens (Config cfg) =
-  joinMapsWith (\len -> score (QueueStats len [])) lens cfg
-
-allocateWorkers :: Int -> Map StageId Int -> Set StageId -> Maybe Config
-allocateWorkers cpus lens done = case result of
-  [] -> Nothing
-  (cfg, _score) : _ -> Just cfg
-  where
-    result = sortBy (comparing snd)
-               [ (cfg, sum (Map.elems (scores lens cfg)))
-               | cfg <- possibleConfigs cpus (Map.keys lens)
-               , not (allocatesDoneStages cfg done)
-               ]
-
-allocatesDoneStages :: Config -> Set StageId -> Bool
-allocatesDoneStages (Config cfg) done =
-  any (\(stageId, numWorkers) -> stageId `Set.member` done && numWorkers > 0)
-      (Map.toList cfg)

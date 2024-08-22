@@ -9,10 +9,13 @@ import LibTest
 
 tests :: TestTree
 tests = testGroup "Tests"
-  [ testCaseBool "TwoStagePipeline" unit_twoStagePipeline ]
+  [ testCaseBool "OneStageOneWorker"   unit_oneStageOneWorker
+  , testCaseBool "OneStageTwoWorkers"  unit_oneStageTwoWorkers
+  , testCaseBool "TwoStagesTwoWorkers" unit_twoStagesTwoWorkers
+  ]
 
 testCaseBool :: String -> IO Bool -> TestTree
-testCaseBool name assertion = 
+testCaseBool name assertion =
   localOption (mkTimeout 1000000) $
     testCase name (assertBool name =<< assertion)
 

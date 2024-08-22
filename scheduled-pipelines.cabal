@@ -25,13 +25,13 @@ library
     Config
     LibMain
     LibTest
+    Logger
     Queue
     Scheduler
     Scheduler.Queue
+    Stage
     Workers
     Workers.Queue
-    Stage
-    Logger
 
   -- other-modules:
   -- other-extensions:
@@ -40,6 +40,7 @@ library
     , containers
     , stm
     , text
+    , time
 
   hs-source-dirs:   src
   default-language: Haskell2010
@@ -51,12 +52,12 @@ executable exe
   -- other-modules:
   -- other-extensions:
   build-depends:
-    , base                
+    , base
     , scheduled-pipelines
 
   hs-source-dirs:   app
   default-language: Haskell2010
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
 
 test-suite test
   import:           warnings
@@ -68,7 +69,7 @@ test-suite test
   hs-source-dirs:   test
   main-is:          Main.hs
   build-depends:
-    , base                 
+    , base
     , scheduled-pipelines
     , tasty
     , tasty-hunit
