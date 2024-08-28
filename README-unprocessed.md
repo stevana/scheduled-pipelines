@@ -83,15 +83,53 @@ figure out what it shall tell it to do next?
 ``` {.haskell include=src/Config.hs snippet=Config .numberLines}
 ```
 
+``` {.haskell include=src/Config.hs snippet=initConfig .numberLines}
+```
+
+``` {.haskell include=src/Config.hs snippet=allocateWorkers .numberLines}
+```
+
+``` {.haskell include=src/Config.hs snippet=possibleConfigs .numberLines}
+```
+
+``` {.haskell include=src/Config.hs snippet=scores .numberLines}
+```
+
+``` {.haskell include=src/Config.hs snippet=joinMapsWith .numberLines}
+```
+
+``` {.haskell include=src/Config.hs snippet=allocatesDoneStages .numberLines}
+```
+
+```haskell
+>>> allocateWorkers 2 (M.fromList [("A", QueueStats 3 []), ("B", QueueStats 0 [])]) S.empty
+Just (Config (fromList [("A",2),("B",0)]))
+```
+
+```haskell
+>>> allocateWorkers 2 (M.fromList [("A", QueueStats 1 [1,1]), ("B", QueueStats 2 [])]) S.empty
+Just (Config (fromList [("A",1),("B",1)]))
+```
+
+```haskell
+>>> allocateWorkers 2 (M.fromList [("A", QueueStats 0 [1,1,1]), ("B", QueueStats 2 [1])]) (S.fromList ["A"])
+Just (Config (fromList [("A",0),("B",2)]))
+```
+
+```haskell
+>>> allocateWorkers 2 (M.fromList [("A", QueueStats 0 [1,1,1]), ("B", QueueStats 0 [1,1,1])]) (S.fromList ["A", "B"])
+Nothing
+```
+
 ## Unexpected connection to Thomas Jefferson
 
 * [Jefferson method](https://en.wikipedia.org/wiki/D%27Hondt_method)
 
-
-
-
 ## Future work
 
+1. scoring algorithms that optimise for latency (prefer working on sink queues
+   / preallocate workers on queues that will likely be non-empty) vs throughput
+   (avoid switching / dynamically increase batch sizes)?
 1. good set of examples
 1. benchmarking
   * One green thread per stage

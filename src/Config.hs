@@ -69,20 +69,30 @@ possibleConfigs cpus stages = map (Config . Map.fromList . zip stages) $ filter 
 -- start snippet scores
 scores :: Map StageId QueueStats -> Config -> Map StageId Double
 scores qss (Config cfg) = joinMapsWith score qss cfg
-
-score :: QueueStats -> Int -> Double
-score qs0 workers =
-  (fromIntegral (queueLength qs0) * fromIntegral (avgServiceTimePicos qs0))
-  /
-  (fromIntegral workers + 1)
   where
-    avgServiceTimePicos :: QueueStats -> Word64
-    avgServiceTimePicos qs
-      | len == 0  = 1 -- XXX: What's the right value here?
-      | otherwise = sum (serviceTimesPicos qs) `div` len
+    score :: QueueStats -> Int -> Double
+    score qs workers =
+      (fromIntegral (queueLength qs) * fromIntegral avgServiceTimePicos)
+      /
+      (fromIntegral workers + 1)
       where
-        len :: Word64
-        len = genericLength (serviceTimesPicos qs)
+        avgServiceTimePicos :: Word64
+        avgServiceTimePicos
+          | len == 0  = 1 -- XXX: What's the right value here?
+          | otherwise = sum (serviceTimesPicos qs) `div` len
+          where
+            len :: Word64
+            len = genericLength (serviceTimesPicos qs)
+-- end snippet
+
+-- https://www.haskellforall.com/2014/12/a-very-general-api-for-relational-joins.html
+-- start snippet joinMapsWith
+joinMapsWith :: Ord k => (a -> b -> c) -> Map k a -> Map k b -> Map k c
+joinMapsWith f m1 m2 = assert (Map.keys m1 == Map.keys m2) $
+  Map.fromList
+    [ (k, f x (m2 Map.! k))
+    | (k, x) <- Map.toList m1
+    ]
 -- end snippet
 
 -- start snippet allocatesDoneStages
@@ -106,17 +116,8 @@ changeStage old (Config diff)
                      | otherwise = go (new + 1) is
 
 diffConfig :: Config -> Config -> Config
-diffConfig (Config old) (Config new) =
-  Config (joinMapsWith diffInt old new)
-
--- https://www.haskellforall.com/2014/12/a-very-general-api-for-relational-joins.html
-joinMapsWith :: Ord k => (a -> b -> c) -> Map k a -> Map k b -> Map k c
-joinMapsWith f m1 m2 = assert (Map.keys m1 == Map.keys m2) $
-  Map.fromList
-    [ (k, f x (m2 Map.! k))
-    | (k, x) <- Map.toList m1
-    ]
-
-diffInt :: Int -> Int -> Int
-diffInt old new = new - old
-
+diffConfig (Config oldCfg) (Config newCfg) =
+  Config (joinMapsWith diffInt oldCfg newCfg)
+  where
+    diffInt :: Int -> Int -> Int
+    diffInt old new = new - old

@@ -94,14 +94,112 @@ newtype Config = Config (Map StageId NumOfWorkers)
 type NumOfWorkers = Int
 ```
 
+``` haskell
+initConfig :: [StageId] -> Config
+initConfig stageIds =
+  Config (Map.fromList (zip stageIds (replicate (length stageIds) 0)))
+```
+
+``` haskell
+allocateWorkers :: Int -> Map StageId QueueStats -> Set StageId -> Maybe Config
+allocateWorkers cpus qstats done = case result of
+  []                -> Nothing
+  (cfg, _score) : _ -> Just cfg
+  where
+    result = sortBy (comparing snd)
+               [ (cfg, sum (Map.elems (scores qstats cfg)))
+               | cfg <- possibleConfigs cpus (Map.keys qstats)
+               , not (allocatesDoneStages cfg done)
+               ]
+```
+
+``` haskell
+possibleConfigs :: Int -> [StageId] -> [Config]
+possibleConfigs cpus stages = map (Config . Map.fromList . zip stages) $ filter ((== cpus) . sum)
+  [ foldl' (\ih i -> update i succ ih) (replicate (length stages) 0) slot
+  | choice <- combinations [0.. (cpus + length stages - 1)] cpus
+  , let slot = [ c - i | (i, c) <- zip [0.. ] choice ]
+  ]
+  where
+    combinations :: [a] -> Int -> [[a]]
+    combinations xs n = filter ((== n) . length) (subsequences xs)
+
+    -- update i f xs = xs[i] := f (xs[i])
+    update :: Int -> (a -> a) -> [a] -> [a]
+    update i f = go [] i
+      where
+        go acc _ []       = reverse acc
+        go acc 0 (x : xs) = reverse acc ++ f x : xs
+        go acc n (x : xs) = go (x : acc) (n - 1) xs
+```
+
+``` haskell
+scores :: Map StageId QueueStats -> Config -> Map StageId Double
+scores qss (Config cfg) = joinMapsWith score qss cfg
+  where
+    score :: QueueStats -> Int -> Double
+    score qs workers =
+      (fromIntegral (queueLength qs) * fromIntegral avgServiceTimePicos)
+      /
+      (fromIntegral workers + 1)
+      where
+        avgServiceTimePicos :: Word64
+        avgServiceTimePicos
+          | len == 0  = 1 -- XXX: What's the right value here?
+          | otherwise = sum (serviceTimesPicos qs) `div` len
+          where
+            len :: Word64
+            len = genericLength (serviceTimesPicos qs)
+```
+
+``` haskell
+joinMapsWith :: Ord k => (a -> b -> c) -> Map k a -> Map k b -> Map k c
+joinMapsWith f m1 m2 = assert (Map.keys m1 == Map.keys m2) $
+  Map.fromList
+    [ (k, f x (m2 Map.! k))
+    | (k, x) <- Map.toList m1
+    ]
+```
+
+``` haskell
+allocatesDoneStages :: Config -> Set StageId -> Bool
+allocatesDoneStages (Config cfg) done =
+  any (\(stageId, numWorkers) -> stageId `Set.member` done && numWorkers > 0)
+      (Map.toList cfg)
+```
+
+``` haskell
+>>> allocateWorkers 2 (M.fromList [("A", QueueStats 3 []), ("B", QueueStats 0 [])]) S.empty
+Just (Config (fromList [("A",2),("B",0)]))
+```
+
+``` haskell
+>>> allocateWorkers 2 (M.fromList [("A", QueueStats 1 [1,1]), ("B", QueueStats 2 [])]) S.empty
+Just (Config (fromList [("A",1),("B",1)]))
+```
+
+``` haskell
+>>> allocateWorkers 2 (M.fromList [("A", QueueStats 0 [1,1,1]), ("B", QueueStats 2 [1])]) (S.fromList ["A"])
+Just (Config (fromList [("A",0),("B",2)]))
+```
+
+``` haskell
+>>> allocateWorkers 2 (M.fromList [("A", QueueStats 0 [1,1,1]), ("B", QueueStats 0 [1,1,1])]) (S.fromList ["A", "B"])
+Nothing
+```
+
 ## Unexpected connection to Thomas Jefferson
 
 - [Jefferson method](https://en.wikipedia.org/wiki/D%27Hondt_method)
 
 ## Future work
 
-1.  good set of examples
-2.  benchmarking
+1.  scoring algorithms that optimise for latency (prefer working on sink
+    queues / preallocate workers on queues that will likely be
+    non-empty) vs throughput (avoid switching / dynamically increase
+    batch sizes)?
+2.  good set of examples
+3.  benchmarking
 
 - One green thread per stage
 - Against single-thread
