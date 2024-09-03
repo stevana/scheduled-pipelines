@@ -114,9 +114,29 @@ The system consists of three parts: the pipeline, the workers and the scheduler:
 
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/system-context.png">
 
+The scheduler monitors the pipeline, looking at how long the input queues for
+each stage is and what the average service time per input of that stage is. By
+doing so it calculate where to schedule the available workers.
 
+XXX: the caclulation
+
+The workers, typically one per available CPU/core, process a batch of inputs at
+the stage the scheduler instructs them to and then report back to the
+scheduler, and so the process repeats until the end of the stream of inputs.
+
+If we zoom in on the pipelne, we see that it consists of a source, N stages and
+a sink:
 
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/container-pipeline.png">
+
+The source can be a file, network socket, a user provided lists of items, etc,
+from which the inputs to the queue of the first stage are created. The inputs
+can be length-prefixed raw bytes, or newline-separated bytes, etc.
+
+Similarly the sink can also be a file, or standard out, or a socket.
+
+In between the source and the sink is where the interesting processing happens
+in stages.
 
 * Schedulling typically assigns work to queues, but here we assign workers to queues?
 
