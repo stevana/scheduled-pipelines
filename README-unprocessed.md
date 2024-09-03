@@ -19,9 +19,17 @@ continuing to work at the first stage of the second item. As the queues between
 the stages saturate we get parallelism while retaining determinism (the outputs
 arrive in the same order as the inputs).
 
+Here's a picture of a bottle factory manufacturing pipeline:
+
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/bottling-factory.png">
 
-sharding = more than one cpu/core per stage
+Each stage is connected by conveyor belts (queues) and runs in parallel with
+the other, e.g. after as the first bottle has been filled, the second can be
+filled while at the same time the first bottle is being capped.
+
+If a stage is slow, then an input queue to the stage can be partitioned or
+sharded by adding another worker to that stage sending every other input to the
+newly added worker, thereby effectively nearly doubling the throughput.
 
 In this post I'd like to discuss the following question: what's the best way to
 allocate CPUs/cores among the stages? For example, if we only have two
@@ -35,29 +43,62 @@ we can make something that scales well as more CPUs/cores are available.
 
 ## Inspiration and prior work
 
-* [Jim Gray](https://www.youtube.com/watch?v=U3eo49nVxcA&t=1949s)
+Pipelining parallelism isn't something I've come up with myself. 
 
-* [Dataflow languages](https://en.wikipedia.org/wiki/Dataflow_programming) and
-  Paul Morrison’s [flow-based programming](https://jpaulm.github.io/fbp/index.html)
+While there are examples of pipelining in manufactoring that pre-date Henry
+Ford, it seems that's when it took off and become a common place. Wikipedia
+says:
 
-Martin Thompson, one of the people behind the [LMAX
-Disruptor](https://lmax-exchange.github.io/disruptor/disruptor.html), said the
-following:
+> "The assembly line, driven by conveyor belts, reduced production time for a
+> Model T to just 93 minutes by dividing the process into 45 steps. Producing
+> cars quicker than paint of the day could dry, it had an immense influence on
+> the world."
 
-    > "If there’s one thing I’d say to the Erlang folks, it’s you got the stuff
-    > right from a high-level, but you need to invest in your messaging
-    > infrastructure so it’s super fast, super efficient and obeys all the right
-    > properties to let this stuff work really well."
+CPUs are another example where pipelining is used, with the intent of speeding
+up the processing of instructions. A pipeline might look like: fetch the
+instruction, fetch the operands, do the instruction, and finally write the
+results.
 
-    This quote together with Joe Armstrong's anecdote of an unmodified Erlang
-    program only running 33 times faster on a 64 core machine, rather than 64 times
-    faster as per the Ericsson higher-up’s expectations, inspired me to think about
-    how one can improve upon the already excellent work that Erlang is doing in
-    this space.
+Give this tremendous success in both manufactoring and hardware one could
+expect that perhaps it's worth doing in software as well?
 
-* [SEDA](https://people.eecs.berkeley.edu/~brewer/papers/SEDA-sosp.pdf)
-* Database engines, e.g. Umbra's
-  [morsels](https://db.in.tum.de/~leis/papers/morsels.pdf)
+For reasons not entirely clear to me, it hasn't seem to have taken off yet, but
+there are proponents of this idea.
+
+Jim Gray talked about software pipeline parallelism and partitioning in his
+Turing award [interview]](https://www.youtube.com/watch?v=U3eo49nVxcA&t=1949s).
+
+[Dataflow languages](https://en.wikipedia.org/wiki/Dataflow_programming) in
+general and Paul Morrison’s [flow-based
+programming](https://jpaulm.github.io/fbp/index.html) in particular exploit
+this idea.
+
+The [LMAX Disruptor](https://lmax-exchange.github.io/disruptor/disruptor.html)
+pattern is also based on pipelining parallelism and supports, what Jim calls,
+partition parallelism. One of the sources that the Disruptor paper mentions is
+[SEDA](https://people.eecs.berkeley.edu/~brewer/papers/SEDA-sosp.pdf).
+
+More recently, as I was digging into more of Jim's work, I discovered that
+database engines also implement something akin to pipeline parallelism. One of
+the most advanced examples of this is Umbra's
+[morsels](https://db.in.tum.de/~leis/papers/morsels.pdf).
+
+These are the examples of software pipeline parallelism that inspired me to
+start thinking about it.
+
+However it wasn't until I read Martin Thompson, one of the people behind the LMAX
+Disruptor, say the following:
+
+> "If there’s one thing I’d say to the Erlang folks, it’s you got the stuff
+> right from a high-level, but you need to invest in your messaging
+> infrastructure so it’s super fast, super efficient and obeys all the right
+> properties to let this stuff work really well."
+
+together with Joe Armstrong's anecdote of an unmodified Erlang program only
+running 33 times faster on a 64 core machine, rather than 64 times faster as
+per the Ericsson higher-up’s expectations, that I started thinking about how a
+programming language can improve upon the already excellent work that Erlang is
+doing in this space.
 
 I've written about this topic before https://stevana.github.io/pipelined_state_machines.html 
 https://stevana.github.io/parallel_stream_processing_with_zero-copy_fan-out_and_sharding.html
@@ -71,6 +112,8 @@ here we'll take a more global approach.
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/system-context.png">
 
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/container-pipeline.png">
+
+* Schedulling typically assigns work to queues, but here we assign workers to queues?
 
 ## Prototype implementation
 
