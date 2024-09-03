@@ -66,7 +66,7 @@ For reasons not entirely clear to me, it hasn't seem to have taken off yet, but
 there are proponents of this idea.
 
 Jim Gray talked about software pipeline parallelism and partitioning in his
-Turing award [interview]](https://www.youtube.com/watch?v=U3eo49nVxcA&t=1949s).
+Turing award [interview](https://www.youtube.com/watch?v=U3eo49nVxcA&t=1949s).
 
 [Dataflow languages](https://en.wikipedia.org/wiki/Dataflow_programming) in
 general and Paul Morrison’s [flow-based
@@ -78,9 +78,10 @@ pattern is also based on pipelining parallelism and supports, what Jim calls,
 partition parallelism. One of the sources that the Disruptor paper mentions is
 [SEDA](https://people.eecs.berkeley.edu/~brewer/papers/SEDA-sosp.pdf).
 
-More recently, as I was digging into more of Jim's work, I discovered that
-database engines also implement something akin to pipeline parallelism. One of
-the most advanced examples of this is Umbra's
+More recently, as I was digging into more of Jim's
+[work](https://jimgray.azurewebsites.net/papers/CacmParallelDB.pdf), I
+discovered that database engines also implement something akin to pipeline
+parallelism. One of the most advanced examples of this is Umbra's
 [morsels](https://db.in.tum.de/~leis/papers/morsels.pdf).
 
 These are the examples of software pipeline parallelism that inspired me to
@@ -109,7 +110,11 @@ here we'll take a more global approach.
 
 ## Big picture
 
+The system consists of three parts: the pipeline, the workers and the scheduler:
+
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/system-context.png">
+
+
 
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/container-pipeline.png">
 
