@@ -170,22 +170,34 @@ figure out what it shall tell it to do next?
 ```
 
 ```haskell
->>> allocateWorkers 2 (M.fromList [("A", QueueStats 3 []), ("B", QueueStats 0 [])]) S.empty
+>>> allocateWorkers 2 
+                    (M.fromList [ ("A", QueueStats 3 [])
+                                , ("B", QueueStats 0 [])]) 
+                    S.empty
 Just (Config (fromList [("A",2),("B",0)]))
 ```
 
 ```haskell
->>> allocateWorkers 2 (M.fromList [("A", QueueStats 1 [1,1]), ("B", QueueStats 2 [])]) S.empty
+>>> allocateWorkers 2 
+                    (M.fromList [ ("A", QueueStats 1 [1,1])
+                                , ("B", QueueStats 2 [])]) 
+                    S.empty
 Just (Config (fromList [("A",1),("B",1)]))
 ```
 
 ```haskell
->>> allocateWorkers 2 (M.fromList [("A", QueueStats 0 [1,1,1]), ("B", QueueStats 2 [1])]) (S.fromList ["A"])
+>>> allocateWorkers 2 
+                    (M.fromList [ ("A", QueueStats 0 [1,1,1])
+                                , ("B", QueueStats 2 [1])]) 
+                    (S.fromList ["A"])
 Just (Config (fromList [("A",0),("B",2)]))
 ```
 
 ```haskell
->>> allocateWorkers 2 (M.fromList [("A", QueueStats 0 [1,1,1]), ("B", QueueStats 0 [1,1,1])]) (S.fromList ["A", "B"])
+>>> allocateWorkers 2 
+                    (M.fromList [ ("A", QueueStats 0 [1,1,1])
+                                , ("B", QueueStats 0 [1,1,1])]) 
+                    (S.fromList ["A", "B"])
 Nothing
 ```
 
