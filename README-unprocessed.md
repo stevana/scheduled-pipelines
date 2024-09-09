@@ -1,4 +1,4 @@
-# Elastically scalable parallel pipelines
+# Scheduling threads like Thomas Jefferson
 
 *Work in progress, please don't share, but do feel free to get involved!*
 
@@ -47,12 +47,16 @@ Pipelining parallelism isn't something I've come up with myself.
 
 While there are examples of pipelining in manufactoring that pre-date Henry
 Ford, it seems that's when it took off and become a common place. Wikipedia
-says:
+[says](https://en.wikipedia.org/wiki/Assembly_line#20th_century):
 
 > "The assembly line, driven by conveyor belts, reduced production time for a
 > Model T to just 93 minutes by dividing the process into 45 steps. Producing
 > cars quicker than paint of the day could dry, it had an immense influence on
 > the world."
+
+For comparison, it
+[apparently](https://en.wikipedia.org/wiki/Ford_Model_T#Mass_production) took
+12.5h before the assembly line.
 
 CPUs are another example where pipelining is used, with the intent of speeding
 up the processing of instructions. A pipeline might look like: fetch the
@@ -95,14 +99,17 @@ Disruptor, say the following:
 > infrastructure so it’s super fast, super efficient and obeys all the right
 > properties to let this stuff work really well."
 
-together with Joe Armstrong's anecdote of an unmodified Erlang program only
-running 33 times faster on a 64 core machine, rather than 64 times faster as
-per the Ericsson higher-up’s expectations, that I started thinking about how a
-programming language can improve upon the already excellent work that Erlang is
-doing in this space.
+Together with hearing Joe Armstrong's
+[anecdote](https://youtu.be/bo5WL5IQAd0?t=2494) of an unmodified Erlang program
+only running 33 times faster on a 64 core machine, rather than 64 times faster
+as per the Ericsson higher-up’s expectations, that I started thinking about how
+a programming language can be designed to make it easier to do pipelining in
+software.
 
-I've written about this topic before https://stevana.github.io/pipelined_state_machines.html 
-https://stevana.github.io/parallel_stream_processing_with_zero-copy_fan-out_and_sharding.html
+I started exploring this topic in
+[two](https://stevana.github.io/pipelined_state_machines.html) of my
+[previous](https://stevana.github.io/parallel_stream_processing_with_zero-copy_fan-out_and_sharding.html)
+posts.
 
 I've also written about elastically scaling a single stage up and down
 [before](https://stevana.github.io/elastically_scalable_thread_pools.html), but
@@ -118,13 +125,20 @@ The scheduler monitors the pipeline, looking at how long the input queues for
 each stage is and what the average service time per input of that stage is. By
 doing so it calculate where to schedule the available workers.
 
-XXX: the caclulation
+The algorithm to allocate the available workers works as follows:
+
+1. Generate all possible configurations of allocating workers across the
+   stages;
+2. Score each configuration using the formula: $\sum_{stage}\frac{queue length
+   of stage * average service time for stage}{workers at stage + 1}$;
+3. Pick the configuration with the lowest score, i.e. the one where the total
+   processing time is the lowest.
 
 The workers, typically one per available CPU/core, process a batch of inputs at
 the stage the scheduler instructs them to and then report back to the
 scheduler, and so the process repeats until the end of the stream of inputs.
 
-If we zoom in on the pipelne, we see that it consists of a source, N stages and
+If we zoom in on the pipeline, we see that it consists of a source, N stages and
 a sink:
 
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/container-pipeline.png">
@@ -148,34 +162,76 @@ plumbing (connecting the components).
 The most interesting aspect is: when a worker is done, how does the scheduler
 figure out what it shall tell it to do next?
 
+We start off by representing what a configuration of workers across a pipeline
+looks like. Each stage has an name, or identifier, and so a configuration can
+be represented as a map from the stage identifier to the number of workers
+assigned to that stage:
+
 ``` {.haskell include=src/Config.hs snippet=Config .numberLines}
 ```
+
+The initial configuration is that all stages have zero workers assigned to it:
 
 ``` {.haskell include=src/Config.hs snippet=initConfig .numberLines}
 ```
 
+The implementation for allocating workers starts by generating all possible
+configurations, filters away configurations which allocate workers to stages
+that are done (where done means that no further inputs will arrive to that
+stage), scores all the configurations and picks the one with the lowest score:
+
 ``` {.haskell include=src/Config.hs snippet=allocateWorkers .numberLines}
 ```
+
+All possible configurations are generated as follows:
 
 ``` {.haskell include=src/Config.hs snippet=possibleConfigs .numberLines}
 ```
 
+While scoring is implemented as following:
+
 ``` {.haskell include=src/Config.hs snippet=scores .numberLines}
 ```
+
+Where a small helper function is used to join maps:
 
 ``` {.haskell include=src/Config.hs snippet=joinMapsWith .numberLines}
 ```
 
+The last piece we need is to be able to tell when a configuration allocates
+workers to a stage that's done:
+
 ``` {.haskell include=src/Config.hs snippet=allocatesDoneStages .numberLines}
 ```
+
+## Running the prototype
+
+Let's finish off with a couple of examples in the REPL. Let's say we have two
+workers, and two stages ($A$ and $B$), the $A$ stage has three items on its
+input queue (and this will be all the inputs it will receive), and no stage is
+done yet (that's the last `S.empty` argument):
 
 ```haskell
 >>> allocateWorkers 2 
                     (M.fromList [ ("A", QueueStats 3 [])
                                 , ("B", QueueStats 0 [])]) 
                     S.empty
+```
+
+(The `QueueStats` constructor takes the input queue length as first argument
+and a list of service times as second argument.)
+
+If we run the above, we get:
+
+```haskell
 Just (Config (fromList [("A",2),("B",0)]))
 ```
+
+Which means both workers should be allocated to the $A@ stage. Let's say that
+we do that allocation and after 1 time unit passes both workers finish, that
+means that the $A$ input queue now has one item left on it, while the second
+stage ($B$) now has two items on its input queue. Since both workers are done,
+we rerun the allocation function:
 
 ```haskell
 >>> allocateWorkers 2 
@@ -185,6 +241,12 @@ Just (Config (fromList [("A",2),("B",0)]))
 Just (Config (fromList [("A",1),("B",1)]))
 ```
 
+The result now is that we should allocate one worker to each stage. If we again
+imagine that we do so and they both finish after one time unit, we end up in a
+situation where all three items have been processed from the first stage ($A$),
+so we can mark $A$ as done, while the second stage will have two items on its
+input queue:
+
 ```haskell
 >>> allocateWorkers 2 
                     (M.fromList [ ("A", QueueStats 0 [1,1,1])
@@ -192,6 +254,10 @@ Just (Config (fromList [("A",1),("B",1)]))
                     (S.fromList ["A"])
 Just (Config (fromList [("A",0),("B",2)]))
 ```
+
+Allocating workers at this point will allocate both to the second stage. After
+the workers finished working on those items the second stage will have
+processed all items as well and we are done:
 
 ```haskell
 >>> allocateWorkers 2 
@@ -203,7 +269,37 @@ Nothing
 
 ## Unexpected connection to Thomas Jefferson
 
-* [Jefferson method](https://en.wikipedia.org/wiki/D%27Hondt_method)
+As I came up with this idea of schedulling described above, I bounced it off my
+friend Daniel Gustafsson who immediately replied "this reminds me a bit of
+Jefferson's [method](https://en.wikipedia.org/wiki/D%27Hondt_method)" (of
+allocating seats in parliaments).
+
+Here's how the process works:
+
+> After all the votes have been tallied, successive quotients are calculated for
+> each party. The party with the largest quotient wins one seat, and its quotient
+> is recalculated. This is repeated until the required number of seats is filled.
+> The formula for the quotient is:
+> 
+> $quot = \frac{V}{s + 1}$
+> 
+> where:
+> 
+> * V is the total number of votes that party received, and
+> * s is the number of seats that party has been allocated so far, initially 0
+>   for all parties.
+
+The analogy being:
+
+    parties         : stages in the pipeline
+    seats per party : cores allocated to a stage
+    votes           : "score" (= length of input queue times average service time)
+    rounds          : total number of cores
+
+XXX: translate our example into rounds...
+
+Daniel also explained that while Jefferson came up with, it's not actually used
+in the USA, but in most of europe including the EU paralment use the method.
 
 ## Future work
 
