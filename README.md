@@ -390,27 +390,42 @@ method:
 2.  In the second round we get the quotients: $\frac{1}{0 + 1} = 1$ and
     $\frac{2}{1 + 1} = 1$ (note that $s = 1$ here, because stage/party
     $B$ already won a seat in the previous round). Which means we get a
-    tie, in this case we could arbitrarily pick the first party, just so
-    that our example works out the same as in the implementation.
+    tie, in this case I guess we could arbitrarily pick the first party,
+    just so that our example works out the same as in the
+    implementation.
 
-Daniel also explained that while Jefferson came up with, it's not
-actually used in the USA, but in most of europe including the EU
-paralment use the method.
+Daniel also explained that while Jefferson came up with this method,
+it's not actually used in the USA, but in most of Europe including the
+EU paralment use the method.
 
 ## Future work
 
-1.  scoring algorithms that optimise for latency (prefer working on sink
-    queues / preallocate workers on queues that will likely be
-    non-empty) vs throughput (avoid switching / dynamically increase
-    batch sizes)?
-2.  good set of examples
-3.  benchmarking
+There are many ways in which this can be extended, here's a few in no
+particular order:
 
-- One green thread per stage
+1.  Can we find other places where this algorithm pops up? The problem
+    seems related to mathematical optimisation, but I haven't been able
+    to find an exact match;
+
+2.  Can we have scoring algorithms that optimise for latency (prefer
+    working on sink queues / preallocate workers on queues that will
+    likely be non-empty) vs throughput (avoid switching / dynamically
+    increase batch sizes);
+
+3.  The prototype uses simple concurrent queues, what would be more
+    interesting is to scale the sharding of LMAX Disruptors up and down
+    as we allocate/deallocate workers between them, that way we could
+    retain determinism of the order in which items are processed;
+
+4.  It would also be useful to
+    [visualise](https://stevana.github.io/visualising_datastructures_over_time_using_svg.html)
+    the pipelines and how threads are scheduled over time, for sanity
+    checking and debugging;
+
+5.  Finally, anything performance related would benefit from
+    benchmarking on a good set of examples. A few things worth trying:
+
 - Against single-thread
+- One green thread per stage
 - N green threads per stage, where N = \# of CPUs/cores
 - Other libraries?
-
-1.  scale sharding of disruptors up and down?
-2.  [visualise](https://stevana.github.io/visualising_datastructures_over_time_using_svg.html)
-    the pipelines and how threads are scheduled over time
