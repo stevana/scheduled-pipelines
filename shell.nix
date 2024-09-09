@@ -10,6 +10,5 @@ pkgs.mkShell {
     stylish-haskell
     pandoc
     plantuml-c4
-    zlib
   ];
 }
