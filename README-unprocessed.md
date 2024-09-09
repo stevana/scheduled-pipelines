@@ -302,7 +302,7 @@ Let's try to redo the example from above, where the stage $A$ and $B$ had queue
 length of $1$ and $2$ respectively, but using the Jefferson method:
 
   1. In the first round, party/stage $A$ gets $1$ vote, while party $B$ gets
-     $2$ votes, so the quotient is $\frac{1}{0 + 1}$ and $\frac{2}{0 + 1}
+     $2$ votes, so the quotient is $\frac{1}{0 + 1}$ and $\frac{2}{0 + 1}$
      respectively, which means that stage $B$ wins the round and gets allocated
      a seat;
 
