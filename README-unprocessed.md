@@ -330,9 +330,11 @@ particular order:
    vs throughput (avoid switching / dynamically increase batch sizes);
 
 3. The prototype uses simple concurrent queues, what would be more interesting
-   is to scale the sharding of LMAX Disruptors up and down as we
-   allocate/deallocate workers between them, that way we could retain
-   determinism of the order in which items are processed;
+   is to scale the
+   [sharding](https://stevana.github.io/parallel_stream_processing_with_zero-copy_fan-out_and_sharding.html#disruptor-pipeline-deployment)
+   of LMAX Disruptors up and down as we allocate/deallocate workers between
+   them, that way we could retain determinism of the order in which items are
+   processed;
 
 4. It would also be useful to
    [visualise](https://stevana.github.io/visualising_datastructures_over_time_using_svg.html)
