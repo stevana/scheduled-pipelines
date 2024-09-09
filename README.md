@@ -141,7 +141,8 @@ The algorithm to allocate the available workers works as follows:
 
 1.  Generate all possible configurations of allocating workers across
     the stages;
-2.  Score each configuration using the formula: $\sum_{s}\frac{l_{s} *
+2.  Score each configuration using the formula:
+    $\sum_{s}\frac{l_{s} \cdot
     t_{s}}{w_{s} + 1}$, where $s$ is a stage, $l_{s}$ is the input queue
     length of the stage $s$, $t_{s}$ is the average service time of the
     stage $s$ and $w_{s}$ is the amount of workers allocated to the
@@ -383,7 +384,7 @@ method:
 
 1.  In the first round, party/stage $A$ gets $1$ vote, while party $B$
     gets $2$ votes, so the quotient is $\frac{1}{0 + 1}$ and
-    \$\frac{2}{0 + 1} respectively, which means that stage $B$ wins the
+    $\frac{2}{0 + 1}$ respectively, which means that stage $B$ wins the
     round and gets allocated a seat;
 
 2.  In the second round we get the quotients: $\frac{1}{0 + 1} = 1$ and
