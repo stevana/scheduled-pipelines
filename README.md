@@ -141,9 +141,11 @@ The algorithm to allocate the available workers works as follows:
 
 1.  Generate all possible configurations of allocating workers across
     the stages;
-2.  Score each configuration using the formula:
-    $\sum_{stage}\frac{queue length
-    of stage * average service time for stage}{workers at stage + 1}$;
+2.  Score each configuration using the formula: $\sum_{s}\frac{l_{s} *
+    t_{s}}{w_{s} + 1}$, where $s$ is a stage, $l_{s}$ is the input queue
+    length of the stage $s$, $t_{s}$ is the average service time of the
+    stage $s$ and $w_{s}$ is the amount of workers allocated to the
+    stage $s$;
 3.  Pick the configuration with the lowest score, i.e. the one where the
     total processing time is the lowest.
 
