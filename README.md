@@ -373,11 +373,24 @@ Here's how the process works:
 The analogy being:
 
     parties         : stages in the pipeline
-    seats per party : cores allocated to a stage
+    seats per party : workers allocated to a stage
     votes           : "score" (= length of input queue times average service time)
-    rounds          : total number of cores
+    rounds          : total number of workers
 
-XXX: translate our example into rounds...
+Let's try to redo the example from above, where the stage $A$ and $B$
+had queue length of $1$ and $2$ respectively, but using the Jefferson
+method:
+
+1.  In the first round, party/stage $A$ gets $1$ vote, while party $B$
+    gets $2$ votes, so the quotient is $\frac{1}{0 + 1}$ and
+    \$\frac{2}{0 + 1} respectively, which means that stage $B$ wins the
+    round and gets allocated a seat;
+
+2.  In the second round we get the quotients: $\frac{1}{0 + 1} = 1$ and
+    $\frac{2}{1 + 1} = 1$ (not that s = 1 here, because stage/party $B$
+    already won a seat in the previous round). Which means we get a tie,
+    in this case we could arbitrarily pick the first party, just so that
+    our example works out the same as in the implementation.
 
 Daniel also explained that while Jefferson came up with, it's not
 actually used in the USA, but in most of europe including the EU
