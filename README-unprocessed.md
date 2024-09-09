@@ -307,7 +307,7 @@ length of $1$ and $2$ respectively, but using the Jefferson method:
      a seat;
 
   2. In the second round we get the quotients: $\frac{1}{0 + 1} = 1$ and
-     $\frac{2}{1 + 1} = 1$ (not that s = 1 here, because stage/party $B$
+     $\frac{2}{1 + 1} = 1$ (note that $s = 1$ here, because stage/party $B$
      already won a seat in the previous round). Which means we get a tie, in
      this case we could arbitrarily pick the first party, just so that our
      example works out the same as in the implementation.
