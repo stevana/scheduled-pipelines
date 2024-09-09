@@ -7,18 +7,18 @@ This post is about how to schedule workers across a pipeline of queues
 in order to minimise total processing time, and an unexpected connection
 between this kind of scheduling and Thomas Jefferson.
 
-## Background and motiviation
+## Background and motivation
 
 Implicit parallelism via pipelining is a topic that interests me. The
 idea is that we can get parallelism for free by splitting our task up in
 stages and arranging them in a pipeline, similarly to how manufacturing
 and CPUs do.
 
-The way it works is that each stage runs independenly (one CPU/core) and
-the stages are connected via queues, so when the first CPU/core is done
-with the first stage of the first item, it passes it on to the second
-stage while continuing to work at the first stage of the second item. As
-the queues between the stages saturate we get parallelism while
+The way it works is that each stage runs independently (one CPU/core)
+and the stages are connected via queues, so when the first CPU/core is
+done with the first stage of the first item, it passes it on to the
+second stage while continuing to work at the first stage of the second
+item. As the queues between the stages saturate we get parallelism while
 retaining determinism (the outputs arrive in the same order as the
 inputs).
 
@@ -51,7 +51,7 @@ CPUs/cores are available.
 
 Pipelining parallelism isn't something I've come up with myself.
 
-While there are examples of pipelining in manufactoring that pre-date
+While there are examples of pipelining in manufacturing that pre-date
 Henry Ford, it seems that's when it took off and become a common place.
 Wikipedia
 [says](https://en.wikipedia.org/wiki/Assembly_line#20th_century):
@@ -70,7 +70,7 @@ speeding up the processing of instructions. A pipeline might look like:
 fetch the instruction, fetch the operands, do the instruction, and
 finally write the results.
 
-Give this tremendous success in both manufactoring and hardware one
+Given this tremendous success in both manufacturing and hardware one
 could expect that perhaps it's worth doing in software as well?
 
 For reasons not entirely clear to me, it hasn't seem to have taken off
@@ -170,7 +170,7 @@ Similarly the sink can also be a file, or standard out, or a socket.
 In between the source and the sink is where the interesting processing
 happens in stages.
 
-- Schedulling typically assigns work to queues, but here we assign
+- XXX: Scheduling typically assigns work to queues, but here we assign
   workers to queues?
 
 ## Prototype implementation
@@ -350,7 +350,7 @@ Nothing
 
 ## Unexpected connection to Thomas Jefferson
 
-As I came up with this idea of schedulling described above, I bounced it
+As I came up with this idea of scheduling described above, I bounced it
 off my friend Daniel Gustafsson who immediately replied "this reminds me
 a bit of Jefferson's
 [method](https://en.wikipedia.org/wiki/D%27Hondt_method)" (of allocating
@@ -396,7 +396,7 @@ method:
 
 Daniel also explained that while Jefferson came up with this method,
 it's not actually used in the USA, but in most of Europe including the
-EU paralment use the method.
+EU parliament use the method.
 
 ## Future work
 
