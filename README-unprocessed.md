@@ -340,7 +340,7 @@ particular order:
 
 5. Finally, anything performance related would benefit from benchmarking on a
    good set of examples. A few things worth trying:
-  * Against single-thread
-  * One green thread per stage
-  * N green threads per stage, where N = # of CPUs/cores
-  * Other libraries?
+    * Against single-thread
+    * One green thread per stage
+    * N green threads per stage, where N = # of CPUs/cores
+    * Other libraries?
