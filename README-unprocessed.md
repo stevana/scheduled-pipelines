@@ -229,7 +229,7 @@ If we run the above, we get:
 Just (Config (fromList [("A",2),("B",0)]))
 ```
 
-Which means both workers should be allocated to the $A@ stage. Let's say that
+Which means both workers should be allocated to the $A$ stage. Let's say that
 we do that allocation and after 1 time unit passes both workers finish, that
 means that the $A$ input queue now has one item left on it, while the second
 stage ($B$) now has two items on its input queue. Since both workers are done,
@@ -310,13 +310,22 @@ length of $1$ and $2$ respectively, but using the Jefferson method:
      $\frac{2}{1 + 1} = 1$ (note that $s = 1$ here, because stage/party $B$
      already won a seat in the previous round). Which means we get a tie, in
      this case I guess we could arbitrarily pick the first party, just so that
-     our example works out the same as in the implementation.
+     our example works out the same as in the implementation[^1].
 
 Daniel also explained that while Jefferson came up with this method, it's not
 actually used in the USA, but in most of Europe including the EU parliament use
 the method.
 
-## Future work
+## Conclusion and future work
+
+We've seen a strategy of how one can elastically scale the amount of CPUs/cores
+dedicated to one stage in a pipeline. Being able to do so should come handy if:
+
+  1. The load on the system changes and suddenly one stage becomes slower than
+     another, by being elastic we can rebalance the cores and maintain throughput;
+
+  2. The load decreases, we can scale down and use the cores elsewhere in the
+     system.
 
 There are many ways in which this can be extended, here's a few in no
 particular order:
@@ -338,11 +347,26 @@ particular order:
 
 4. It would also be useful to
    [visualise](https://stevana.github.io/visualising_datastructures_over_time_using_svg.html)
-  the pipelines and how threads are scheduled over time, for sanity checking and debugging;
+   the pipelines and how threads are scheduled over time, for sanity checking and debugging;
 
 5. Finally, anything performance related would benefit from benchmarking on a
    good set of examples. A few things worth trying:
-    * Against single-thread
-    * One green thread per stage
-    * N green threads per stage, where N = # of CPUs/cores
+    * Against single-thread, trying to avoid
+      [this](http://www.frankmcsherry.org/graph/scalability/cost/2015/01/15/COST.html);
+    * One core per stage
+    * N green threads per stage, where N = # of CPUs/cores? Are there better
+      ways to offload the rebalancing to the runtime?
     * Other libraries?
+
+If any of this interests you feel free to get in
+[touch](https://stevana.github.io/about.html).
+
+
+[^1]: This tie actually highlights a small difference between the Jefferson
+    method and my approach. In my approach allocating one worker on both $A$
+    and $B$ has a lower score than allocating both workers to $B$, because if we
+    instantiate the $\sum{s} \frac{l_s \cdot l_t}{w_s + 1}$ for the two
+    configurations we get $\frac{1 \cdot 1}{1 + 1} + \frac{2 \cdot 1}{1 + 1} = 1.5$
+    and $\frac{1 \cdot 1}{1 + 0} + \frac{2 \cdot 1}{1 + 2} = 1.66...$ respectively,
+    i.e. $A$ is part of the calculation even if we allocate both workers to the $B$
+    stage. I'm still not sure which is preferable.
