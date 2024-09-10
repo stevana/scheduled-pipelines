@@ -25,7 +25,7 @@ Here's a picture of a bottle factory manufacturing pipeline:
 
 Each stage is connected by conveyor belts (queues) and runs in parallel with
 the other, e.g. after as the first bottle has been filled, the second can be
-filled while at the same time the first bottle is being capped.
+filled while at the same time the first bottle is being capped, etc.
 
 If a stage is slow, then an input queue to the stage can be partitioned or
 sharded by adding another worker to that stage sending every other input to the
@@ -42,8 +42,6 @@ I'd like to make a programming language which uses these concepts to try see if
 we can make something that scales well as more CPUs/cores are available.
 
 ## Inspiration and prior work
-
-Pipelining parallelism isn't something I've come up with myself. 
 
 While there are examples of pipelining in manufacturing that pre-date Henry
 Ford, it seems that's when it took off and become a common place. Wikipedia
@@ -64,35 +62,29 @@ instruction, fetch the operands, do the instruction, and finally write the
 results.
 
 Given this tremendous success in both manufacturing and hardware one could
-expect that perhaps it's worth doing in software as well?
-
-For reasons not entirely clear to me, it hasn't seem to have taken off yet, but
-there are proponents of this idea.
+expect that perhaps it's worth doing in software as well? For reasons not
+entirely clear to me, it hasn't seem to have taken off yet, but there are
+proponents of this idea.
 
 Jim Gray talked about software pipeline parallelism and partitioning in his
 Turing award [interview](https://www.youtube.com/watch?v=U3eo49nVxcA&t=1949s).
-
 [Dataflow languages](https://en.wikipedia.org/wiki/Dataflow_programming) in
 general and Paul Morrison’s [flow-based
 programming](https://jpaulm.github.io/fbp/index.html) in particular exploit
-this idea.
-
-The [LMAX Disruptor](https://lmax-exchange.github.io/disruptor/disruptor.html)
+this idea. The [LMAX
+Disruptor](https://lmax-exchange.github.io/disruptor/disruptor.html)
 pattern is also based on pipelining parallelism and supports, what Jim calls,
 partition parallelism. One of the sources that the Disruptor paper mentions is
-[SEDA](https://people.eecs.berkeley.edu/~brewer/papers/SEDA-sosp.pdf).
-
-More recently, as I was digging into more of Jim's
+[SEDA](https://people.eecs.berkeley.edu/~brewer/papers/SEDA-sosp.pdf). More
+recently, as I was digging into more of Jim's
 [work](https://jimgray.azurewebsites.net/papers/CacmParallelDB.pdf), I
 discovered that database engines also implement something akin to pipeline
 parallelism. One of the most advanced examples of this is Umbra's
 [morsels](https://db.in.tum.de/~leis/papers/morsels.pdf).
 
 These are the examples of software pipeline parallelism that inspired me to
-start thinking about it.
-
-However it wasn't until I read Martin Thompson, one of the people behind the LMAX
-Disruptor, say the following:
+start thinking about it. However it wasn't until I read Martin Thompson, one of
+the people behind the LMAX Disruptor, say the following:
 
 > "If there’s one thing I’d say to the Erlang folks, it’s you got the stuff
 > right from a high-level, but you need to invest in your messaging
@@ -109,9 +101,8 @@ software.
 I started exploring this topic in
 [two](https://stevana.github.io/pipelined_state_machines.html) of my
 [previous](https://stevana.github.io/parallel_stream_processing_with_zero-copy_fan-out_and_sharding.html)
-posts.
-
-I've also written about elastically scaling a single stage up and down
+posts, and I've also written about elastically scaling a single stage up and
+down
 [before](https://stevana.github.io/elastically_scalable_thread_pools.html), but
 here we'll take a more global approach.
 
@@ -147,14 +138,9 @@ a sink:
 
 The source can be a file, network socket, a user provided lists of items, etc,
 from which the inputs to the queue of the first stage are created. The inputs
-can be length-prefixed raw bytes, or newline-separated bytes, etc.
-
-Similarly the sink can also be a file, or standard out, or a socket.
-
-In between the source and the sink is where the interesting processing happens
-in stages.
-
-* XXX: Scheduling typically assigns work to queues, but here we assign workers to queues?
+can be length-prefixed raw bytes, or newline-separated bytes, etc. Similarly
+the sink can also be a file, or standard out, or a socket. While in between the
+source and the sink is where the interesting processing happens in stages.
 
 ## Prototype implementation
 
@@ -323,7 +309,6 @@ dedicated to one stage in a pipeline. Being able to do so should come handy if:
 
   1. The load on the system changes and suddenly one stage becomes slower than
      another, by being elastic we can rebalance the cores and maintain throughput;
-
   2. The load decreases, we can scale down and use the cores elsewhere in the
      system.
 
@@ -333,22 +318,18 @@ particular order:
 1. Can we find other places where this algorithm pops up? The problem seems
    related to mathematical optimisation, but I haven't been able to find an
    exact match;
-
 2. Can we have scoring algorithms that optimise for latency (prefer working on
    sink queues / preallocate workers on queues that will likely be non-empty)
    vs throughput (avoid switching / dynamically increase batch sizes);
-
 3. The prototype uses simple concurrent queues, what would be more interesting
    is to scale the
    [sharding](https://stevana.github.io/parallel_stream_processing_with_zero-copy_fan-out_and_sharding.html#disruptor-pipeline-deployment)
    of LMAX Disruptors up and down as we allocate/deallocate workers between
    them, that way we could retain determinism of the order in which items are
    processed;
-
 4. It would also be useful to
    [visualise](https://stevana.github.io/visualising_datastructures_over_time_using_svg.html)
    the pipelines and how threads are scheduled over time, for sanity checking and debugging;
-
 5. Finally, anything performance related would benefit from benchmarking on a
    good set of examples. A few things worth trying:
     * Against single-thread, trying to avoid
