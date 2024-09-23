@@ -6,10 +6,15 @@ between this kind of scheduling and Thomas Jefferson.
 
 ## Background and motivation
 
-Implicit parallelism via pipelining is a topic that interests me. The
-idea is that we can get parallelism for free by splitting our task up in
-stages and arranging them in a pipeline, similarly to how manufacturing
-and CPUs do.
+You know how assembly lines in manufacturing and instruction pipelines
+in CPUs give a form of parallelism, without breaking determinism (the
+order of inputs to the pipeline is preserved in the outputs)?
+
+We'll call this implicit parallelism via pipelining. Implicit, because
+by merely splitting the task at hand up in stages, we get parallelism
+for free. When this technique is applied to software, it allows us to
+write purely sequential programs (for each stage), while still utilising
+our parallel hardware.
 
 The way it works is that each stage runs independently (one CPU/core)
 and the stages are connected via queues, so when the first CPU/core is
