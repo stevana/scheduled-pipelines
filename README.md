@@ -1,8 +1,5 @@
 # Scheduling threads like Thomas Jefferson
 
-*Work in progress, please don't share, but do feel free to get
-involved!*
-
 This post is about how to schedule workers across a pipeline of queues
 in order to minimise total processing time, and an unexpected connection
 between this kind of scheduling and Thomas Jefferson.
@@ -83,13 +80,17 @@ exploit this idea. The [LMAX
 Disruptor](https://lmax-exchange.github.io/disruptor/disruptor.html)
 pattern is also based on pipelining parallelism and supports, what Jim
 calls, partition parallelism. One of the sources that the Disruptor
-paper mentions is
-[SEDA](https://people.eecs.berkeley.edu/~brewer/papers/SEDA-sosp.pdf).
-More recently, as I was digging into more of Jim's
+paper mentions is [*SEDA: An Architecture for Well-Conditioned, Scalable
+Internet
+Services*](https://people.eecs.berkeley.edu/~brewer/papers/SEDA-sosp.pdf)
+(2001), which also talk about pipelines and dynamically allocating
+threads to the stages. More recently, as I was digging into more of
+Jim's
 [work](https://jimgray.azurewebsites.net/papers/CacmParallelDB.pdf), I
 discovered that database engines also implement something akin to
-pipeline parallelism. One of the most advanced examples of this is
-Umbra's [morsels](https://db.in.tum.de/~leis/papers/morsels.pdf).
+pipeline parallelism. For a more recent example of database engines that
+use this technique, see the paper on Umbra's [morsel-driven
+parallelism](https://db.in.tum.de/~leis/papers/morsels.pdf) (2014).
 
 These are the examples of software pipeline parallelism that inspired me
 to start thinking about it. However it wasn't until I read Martin
@@ -161,10 +162,9 @@ where the interesting processing happens in stages.
 ## Prototype implementation
 
 From the above picture, I hope that it's clear that most of the code is
-plumbing (connecting the components).
-
-The most interesting aspect is: when a worker is done, how does the
-scheduler figure out what it shall tell it to do next?
+plumbing (connecting the components with queues). The most interesting
+aspect of the code is: when a worker is done, how does the scheduler
+figure out what it shall tell it to do next? So let's focus on that.
 
 We start off by representing what a configuration of workers across a
 pipeline looks like. Each stage has an name, or identifier, and so a
