@@ -402,9 +402,19 @@ should come handy if:
 
 We also saw how Thomas Jefferson's method of allocating seats in a
 parliament can be used to solve the same problem. This unexpected
-connection makes me wonder where else this algorithm pops up? Please let
-[me know](https://stevana.github.io/about.html) if it reminds you of
-something you've seen before.
+connection makes me wonder where else this algorithm pops up?
+
+We are still far from being able to implement a parallel programming
+language runtime using these ideas. In particular the current
+[implementation](https://github.com/stevana/scheduled-pipelines) uses
+simple concurrent queues to connect the stages, meaning that scaling up
+a stage doesn't preserve determinism of the output. This can be solved
+using Disruptors instead, as in my [older
+post](https://stevana.github.io/parallel_stream_processing_with_zero-copy_fan-out_and_sharding.html).
+I've collected a bunch of other things left to do in a separate
+[file](https://github.com/stevana/scheduled-pipelines/blob/main/TODO.md).
+If any of this interests you feel free to get in
+[touch](https://stevana.github.io/about.html).
 
 [^1]: This tie actually highlights a small difference between the
     Jefferson method and my approach. In my approach allocating one
