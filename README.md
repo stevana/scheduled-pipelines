@@ -348,7 +348,7 @@ seats in parliaments).
 
 Here's how the process works:
 
-> After all the votes have been tallied, successive quotients are
+> "After all the votes have been tallied, successive quotients are
 > calculated for each party. The party with the largest quotient wins
 > one seat, and its quotient is recalculated. This is repeated until the
 > required number of seats is filled. The formula for the quotient is:
@@ -359,7 +359,7 @@ Here's how the process works:
 >
 > - V is the total number of votes that party received, and
 > - s is the number of seats that party has been allocated so far,
->   initially 0 for all parties.
+>   initially 0 for all parties."
 
 The analogy being:
 
@@ -413,7 +413,7 @@ using Disruptors instead, as in my [older
 post](https://stevana.github.io/parallel_stream_processing_with_zero-copy_fan-out_and_sharding.html).
 I've collected a bunch of other things left to do in a separate
 [file](https://github.com/stevana/scheduled-pipelines/blob/main/TODO.md).
-If any of this interests you feel free to get in
+If any of this interests you, feel free to get in
 [touch](https://stevana.github.io/about.html).
 
 [^1]: This tie actually highlights a small difference between the
