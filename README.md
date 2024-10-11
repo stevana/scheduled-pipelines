@@ -72,7 +72,7 @@ finally write the results.
 
 Given this tremendous success in both manufacturing and hardware one
 could expect that perhaps it's worth doing in software as well? For
-reasons not entirely clear to me, it hasn't seem to have taken off yet,
+reasons not entirely clear to me, it doesn't seem to have taken off yet,
 but there are proponents of this idea.
 
 Jim Gray talked about software pipeline parallelism and partitioning in
