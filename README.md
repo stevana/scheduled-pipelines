@@ -129,9 +129,9 @@ scheduler:
 
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/system-context.png">
 
-The scheduler monitors the pipeline, looking at how long the input
-queues for each stage is and what the average service time per input of
-that stage is. By doing so it calculates where to schedule the available
+The scheduler monitors the pipeline, looking at how long the input queue
+for each stage is and what the average service time per input of that
+stage is. By doing so it calculates where to schedule the available
 workers.
 
 The algorithm to allocate the available workers works as follows:
