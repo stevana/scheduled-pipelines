@@ -81,7 +81,7 @@ pattern is also based on pipelining parallelism and supports, what Jim calls,
 partition parallelism. One of the sources that the Disruptor paper mentions is
 [*SEDA: An Architecture for Well-Conditioned, Scalable Internet
 Services*](https://people.eecs.berkeley.edu/~brewer/papers/SEDA-sosp.pdf)
-(2001), which also talk about pipelines and dynamically allocating threads to
+(2001), which also talks about pipelines and dynamically allocating threads to
 the stages. More recently, as I was digging into more of Jim's
 [work](https://jimgray.azurewebsites.net/papers/CacmParallelDB.pdf), I
 discovered that database engines also implement something akin to pipeline
