@@ -157,12 +157,12 @@ stages and a sink:
 
 <img src="https://raw.githubusercontent.com/stevana/scheduled-pipelines/main/images/container-pipeline.png">
 
-The source can be a file, network socket, a user provided lists of
-items, etc, from which the inputs to the queue of the first stage are
-created. The inputs can be length-prefixed raw bytes, or
-newline-separated bytes, etc. Similarly the sink can also be a file, or
-standard out, or a socket. While in between the source and the sink is
-where the interesting processing happens in stages.
+The source can be a file, network socket, a user provided list of items,
+etc, from which the inputs to the queue of the first stage are created.
+The inputs can be length-prefixed raw bytes, or newline-separated bytes,
+etc. Similarly the sink can also be a file, or standard out, or a
+socket. While in between the source and the sink is where the
+interesting processing happens in stages.
 
 ## Prototype implementation
 
