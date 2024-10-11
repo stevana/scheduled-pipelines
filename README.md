@@ -52,7 +52,7 @@ CPUs/cores are available.
 ## Inspiration and prior work
 
 While there are examples of pipelining in manufacturing that pre-date
-Henry Ford, it seems that's when it took off and become a common place.
+Henry Ford, it seems that's when it took off and became commonplace.
 Wikipedia
 [says](https://en.wikipedia.org/wiki/Assembly_line#20th_century):
 
@@ -131,7 +131,7 @@ scheduler:
 
 The scheduler monitors the pipeline, looking at how long the input
 queues for each stage is and what the average service time per input of
-that stage is. By doing so it calculate where to schedule the available
+that stage is. By doing so it calculates where to schedule the available
 workers.
 
 The algorithm to allocate the available workers works as follows:

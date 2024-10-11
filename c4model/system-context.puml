@@ -6,7 +6,7 @@ System(workers, "Workers")
 System(pipeline, "Pipeline")
 
 Rel(scheduler, pipeline, "monitors queue lengths and service times", "Shared memory")
-Rel(scheduler, workers, "send instructions about which pipeline stage to process (and how many items)", "Message queue")
+Rel(scheduler, workers, "sends instructions about which pipeline stage to process (and how many items)", "Message queue")
 Rel(workers, scheduler, "says when done with a batch, or when a stage is done (end of stream)", "Message queue")
 Rel(workers, pipeline, "processes batch of items at a stage", "CPU/core")
 
